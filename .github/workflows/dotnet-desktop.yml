@@ -87,15 +87,15 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
-        name: "Automated Release - ${GITHUB_SHA}"
-        tag_name: "auto-${GITHUB_SHA}"
+        name: "Automated Release - ${{ github.sha }}"
+        tag_name: "auto-${{ github.sha }}"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: "auto-${GITHUB_SHA}"
+        tag_name: "auto-${{ github.sha }}"
         asset_path: ./release.zip
         asset_name: EstlKnet.zip
         asset_content_type: application/zip
