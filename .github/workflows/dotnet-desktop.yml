@@ -96,9 +96,10 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: "auto-${{ github.sha }}"
-        asset_path: ./release.zip
-        asset_name: EstlKnet.zip
-        asset_content_type: application/zip
+        files: "./release.zip:EstlKnet.zip"
+        #asset_path: ./release.zip
+        #asset_name: EstlKnet.zip
+        #asset_content_type: application/zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
