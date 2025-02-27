@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
@@ -16,24 +13,55 @@ namespace EstlKnet
         // Class to hold core configuration as parsed from GCODE comments containing JSON formatted settings
         public class CoreConfig
         {
-            public string Core { get; set; }
+            [JsonPropertyName("Core")]
+            public string? Core { get; set; }
+
 
             [JsonPropertyName("X-Axis")]
-            public string XAxis { get; set; }
+            public string? XAxis { get; set; }
 
+            [JsonPropertyName("Park")]
             public double Park { get; set; }
             // Optional feed rate. If zero, use rapid move (G00); if nonzero, use G1.
-            
+
+            [JsonPropertyName("Feed")]
             public double Feed { get; set; }
+
+            public CoreConfig()
+            {
+
+            }
+
+            public CoreConfig(
+                string core,
+                string xaxis,
+                string park,
+                string feed)
+            {
+                Core = core ?? throw new ArgumentNullException(nameof(core));
+                XAxis = xaxis ?? throw new ArgumentNullException(nameof(core));
+            }
         }
 
         public class RunOptions
         {
             public string FileExtension { get; set; }
-
             public string SourceFilePath { get; set; }
             public string DestFilePath { get; set; }
             public string BaseOutputName { get; internal set; }
+
+            public RunOptions(
+                string sourceFilePath,
+                string destFilePath)
+            {
+                string baseOutputName = Path.GetFileNameWithoutExtension(sourceFilePath) + "_knet";
+                string fileExtension = Path.GetExtension(sourceFilePath);
+
+                FileExtension = fileExtension ?? throw new ArgumentNullException(nameof(fileExtension));
+                SourceFilePath = sourceFilePath ?? throw new ArgumentNullException(nameof(sourceFilePath));
+                DestFilePath = destFilePath ?? throw new ArgumentNullException(nameof(destFilePath));
+                BaseOutputName = baseOutputName ?? throw new ArgumentNullException($"{nameof(baseOutputName)}");
+            }
         }
 
         public class MachineState
@@ -43,7 +71,7 @@ namespace EstlKnet
                 this.CoreConfigs = new Dictionary<string, CoreConfig>();
 
                 // The currently active core (by its identifier, e.g. "A" or "B").
-                this.ActiveCore = null;
+                this.ActiveCore = string.Empty;
             }
 
             public Dictionary<string, CoreConfig> CoreConfigs {  get; set; }
@@ -81,7 +109,7 @@ namespace EstlKnet
                 Console.WriteLine($"Using alternative fallback path {sourceFile}");
             }
 
-            if (!File.Exists(sourceFile))
+            if (string.IsNullOrEmpty(sourceFile) || !File.Exists(sourceFile))
             {
                 Console.WriteLine($"FAIL, file '{sourceFile}' not found.");
                 return 1;
@@ -89,24 +117,16 @@ namespace EstlKnet
 
             // Prepare naming for output files.
             string destFile = Path.Combine(
-                Path.GetDirectoryName(sourceFile),
+                Path.GetDirectoryName(sourceFile)!,
                 Path.GetFileNameWithoutExtension(sourceFile) + "_knet" + Path.GetExtension(sourceFile));
-            string baseOutputName = Path.GetFileNameWithoutExtension(sourceFile) + "_knet";
-            string fileExtension = Path.GetExtension(sourceFile);
 
-            RunOptions runOptions = new RunOptions()
-            {
-                SourceFilePath = sourceFile,
-                DestFilePath = destFile,
-                BaseOutputName = baseOutputName,
-                FileExtension = fileExtension
-            };
+            RunOptions runOptions = new RunOptions(sourceFile, destFile);
 
             // Flag for splitting output files on each Tool Change.
             bool splitByTool = false;
             int segmentIndex = 0;
             // We will assign 'output' to a StreamWriter that might be replaced when a Tool Change is encountered.
-            StreamWriter output = null;
+            StreamWriter? output = null;
 
             // Machine and Core configurations
             MachineState machineState = new MachineState();
@@ -130,8 +150,8 @@ namespace EstlKnet
                         // Close the current file and open the first split segment.
                         output.Close();
                         segmentIndex = 0;
-                        string splitPath = Path.Combine(Path.GetDirectoryName(sourceFile),
-                            $"{baseOutputName}_{segmentIndex}{fileExtension}");
+                        string splitPath = Path.Combine(Path.GetDirectoryName(sourceFile)!,
+                            $"{runOptions.BaseOutputName}_{segmentIndex}{runOptions.FileExtension}");
                         output = File.CreateText(splitPath);
                     }
                     output.WriteLine(line);
@@ -169,7 +189,7 @@ namespace EstlKnet
                 {
                     CoreConfig activeConfig = machineState.CoreConfigs[machineState.ActiveCore];
                     // If the active core's X-Axis letter differs from "X", replace it.
-                    if (!activeConfig.XAxis.Equals("X", StringComparison.OrdinalIgnoreCase))
+                    if (!"X".Equals(activeConfig.XAxis, StringComparison.OrdinalIgnoreCase))
                     {
                         line = line.Replace("X", activeConfig.XAxis);
                     }
@@ -203,7 +223,7 @@ namespace EstlKnet
 
                 try
                 {
-                    CoreConfig config = JsonSerializer.Deserialize<CoreConfig>(sanitizedJson);
+                    CoreConfig? config = JsonSerializer.Deserialize<CoreConfig>(sanitizedJson);
                     if (config != null && !string.IsNullOrEmpty(config.Core))
                     {
                         machineState.CoreConfigs[config.Core] = config;
@@ -241,10 +261,10 @@ namespace EstlKnet
                 if (!string.IsNullOrEmpty(newCore) && machineState.CoreConfigs.ContainsKey(newCore))
                 {
                     // If a change is really happening, park the current active core.
-                    if (machineState.ActiveCore != null && machineState.ActiveCore != newCore)
+                    if (!string.IsNullOrEmpty(machineState.ActiveCore) && machineState.ActiveCore != newCore)
                     {
                         CoreConfig inactive = machineState.CoreConfigs[machineState.ActiveCore];
-                        string axisLetter = inactive.XAxis;
+                        string? axisLetter = inactive.XAxis;
                         string parkCommand = (inactive.Feed > 0)
                             ? $"G1 {axisLetter}{inactive.Park:0.000} F{inactive.Feed:0.000}"
                             : $"G00 {axisLetter}{inactive.Park:0.000}";
@@ -261,7 +281,7 @@ namespace EstlKnet
                 // If splitting is enabled, close the current file and start a new one for this Tool Change.
                 output.Close();
                 segmentIndex++;
-                string newOutputPath = Path.Combine(Path.GetDirectoryName(runOptions.SourceFilePath),
+                string newOutputPath = Path.Combine(Path.GetDirectoryName(runOptions.SourceFilePath)!,
                     $"{runOptions.BaseOutputName}_{segmentIndex}{runOptions.FileExtension}");
                 output = File.CreateText(newOutputPath);
                 // Write the tool change comment into the new file.

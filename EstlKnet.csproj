@@ -8,7 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="EstlKnet.Tests\ProgramTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include=".github\workflows\dotnet-desktop.yml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="EstlKnet.Tests\" />
   </ItemGroup>
 
 </Project>
