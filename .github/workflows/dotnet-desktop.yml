@@ -76,8 +76,11 @@ jobs:
     - name: Publish app
       run: dotnet publish EstlKnet.csproj -c Release -o output
 
-    - name: Zip published output
-      run: zip -r release.zip output
+    - name: Zip published output (Windows runner) 
+      run: Compress-Archive -Path output\* -DestinationPath release.zip
+
+    #- name: Zip published output (Linux runner)
+    #  run: zip -r release.zip output
 
     - name: Create GitHub Release
       id: create_release
