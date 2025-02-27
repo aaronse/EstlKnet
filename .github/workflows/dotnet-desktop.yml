@@ -83,6 +83,13 @@ jobs:
       run: |
         $date = Get-Date -Format "yyyy-MM-dd"
         "current_date=$date" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+    - name: Get short SHA
+      id: short_sha
+      shell: pwsh
+      run: |
+        $shortSha = $env:GITHUB_SHA.Substring(0,7)
+        "short_sha=$shortSha" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
     
     - name: Publish app
       run: dotnet publish EstlKnet.csproj -c Release -o output
@@ -100,8 +107,8 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
-        name: "Auto Build ${{ steps.get_date.outputs.current_date }} ${{ substring(github.sha, 0, 7) }}"
-        tag_name: "auto-${{ github.sha }}"        
+        name: "Auto Build ${{ steps.get_date.outputs.current_date }} ${{ steps.short_sha.outputs.short_sha }}"
+        tag_name: "auto-${{ steps.short_sha.outputs.short_sha }}"        
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
