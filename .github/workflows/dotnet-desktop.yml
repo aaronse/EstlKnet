@@ -74,7 +74,7 @@ jobs:
         dotnet-version: 8.0.x
 
     - name: Publish app
-      run: dotnet publish EstlKnet/EstlKnet.csproj -c Release -o output
+      run: dotnet publish EstlKnet.csproj -c Release -o output
 
     - name: Zip published output
       run: zip -r release.zip output
