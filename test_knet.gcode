@@ -2,11 +2,15 @@
 (Created with Estlcam 12.117)
 (Machining time about 00:24:56 hours)
 
+(Core: A; X-Axis: X; Park: -81.000)
+(Core: B; X-Axis: C; Park: 1246.000)
+
 (Required tools:)
 (90deg engraver)
-(1/8" Upcut Soft wood [X->C])
-(1/8" V-Carve Soft wood [X->D])
-(Tool Change: 1/8" Upcut Soft wood [X->C])
+(1/8" Upcut Soft wood [B])
+(1/8" V-Carve Soft wood [A])
+G00 X-81.000
+(Tool Change: 1/8" Upcut Soft wood [B])
 
 G21
 G90
