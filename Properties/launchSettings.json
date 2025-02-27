@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "EstlKnet": {
+      "commandName": "Project",
+      "commandLineArgs": "test.gcode"
+    }
+  }
+}
