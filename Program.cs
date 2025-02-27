@@ -7,9 +7,23 @@ namespace EstlKnet
     // Small app to help post process EstlCam generated g-code to help Makers needing to split 
     // cut 'n carve jobs on CNC setups with 1-many routers (e.g. IDEX).
 
-    // Based on Jason Yeager's (jeyeager) code from the .exe he posted  https://forum.v1e.com/t/how-many-are-were-interested-in-idex-builds/48047/23
+    // Background:
+    // - Initially based on discussion with Cesar in https://forum.v1e.com/t/how-many-are-were-interested-in-idex-builds/48047,
+    //   and Jason Yeager's (jeyeager) code from the .exe he posted  https://forum.v1e.com/t/how-many-are-were-interested-in-idex-builds/48047/23
+    // - Picked EstlKnet name not known/intended to be offensive, reasoning here... https://chatgpt.com/share/67c0bc87-4cfc-800b-87c5-c25d27d6f34a
     class Program
     {
+        private readonly static string _usage =
+/*
+          1         2         3         4         5         6         7         8
+012345678901234567890123456789012345678901234567890123456789012345678901234567890
+*/
+@"EstlKnet - G-Code massager for happier outcomes.
+
+Usage: EstlKnet <filepath>
+-v      Verbose output 
+";
+
         // Class to hold core configuration as parsed from GCODE comments containing JSON formatted settings
         public class CoreConfig
         {
@@ -79,26 +93,46 @@ namespace EstlKnet
             public string ActiveCore { get; set; }
         }
 
-        static int Main(string[] args)
+        static int Main(string[] cmdArgs)
         {
+            var args = Args.ParseArgs(_usage, cmdArgs);
+            //Log.LogTime = false;
+            Log.Verbose = args.ContainsKey("-v");
+            Log.Info(Environment.CommandLine);
+
             if (args.Length == 0)
             {
-                Console.WriteLine("Usage: EstlKnet <filepath>");
+                Log.Info(_usage);
                 return 1;
             }
 
+            int ret = -1;
+            try
+            {
+                ret = Run(args);
+            }
+            catch (Exception e)
+            {
+                Log.Error("Unhandled Error, ex={0}", e);
+            }
+
+            return ret;
+        }
+
+        public static int Run(Args args)
+        {
             string sourceFile = args[0];
             if (File.Exists(sourceFile))
             {
-                Console.WriteLine($"Processing {sourceFile}");
+                Log.Info($"Processing {sourceFile}");
             }
 
             // Check if a relative file path was specified.
-            if (!File.Exists(sourceFile) && Environment.CurrentDirectory.IndexOf("\\bin\\Debug") != -1)
+            if (!File.Exists(sourceFile) && Environment.CurrentDirectory.IndexOf("\\bin\\") != -1)
             {
                 string curDir = Environment.CurrentDirectory;
                 string altFilePath = Path.Combine(
-                    curDir.Substring(0, curDir.IndexOf("\\bin\\Debug")),
+                    curDir.Substring(0, curDir.IndexOf("\\bin\\")),
                     sourceFile);
 
                 if (File.Exists(altFilePath))
@@ -106,12 +140,12 @@ namespace EstlKnet
                     sourceFile = altFilePath;
                 }
 
-                Console.WriteLine($"Using alternative fallback path {sourceFile}");
+                Log.Info($"Using alternative fallback path {sourceFile}");
             }
 
             if (string.IsNullOrEmpty(sourceFile) || !File.Exists(sourceFile))
             {
-                Console.WriteLine($"FAIL, file '{sourceFile}' not found.");
+                Log.Info($"FAIL, file '{sourceFile}' not found.");
                 return 1;
             }
 
@@ -146,7 +180,7 @@ namespace EstlKnet
                         line.IndexOf("1") != -1)
                     {
                         splitByTool = true;
-                        Console.WriteLine("SplitByTool enabled. Separate output files will be generated for each Tool Change.");
+                        Log.Info("SplitByTool enabled. Separate output files will be generated for each Tool Change.");
                         // Close the current file and open the first split segment.
                         output.Close();
                         segmentIndex = 0;
@@ -202,7 +236,8 @@ namespace EstlKnet
             }
 
             output.Close();
-            Console.WriteLine("Processing complete.");
+            
+            Log.Info("Processing complete.");
             return 0;
         }
 
@@ -227,19 +262,19 @@ namespace EstlKnet
                     if (config != null && !string.IsNullOrEmpty(config.Core))
                     {
                         machineState.CoreConfigs[config.Core] = config;
-                        Console.WriteLine($"Loaded config for core {config.Core}: Axis {config.XAxis}, Park {config.Park}");
+                        Log.Info($"Loaded config for core {config.Core}: Axis {config.XAxis}, Park {config.Park}");
 
                         // Set the default active core to the one with the default axis "X" if not already set.
                         if (machineState.ActiveCore == null && "X".Equals(config.XAxis, StringComparison.OrdinalIgnoreCase))
                         {
                             machineState.ActiveCore = config.Core;
-                            Console.WriteLine($"Default active core set to {machineState.ActiveCore}");
+                            Log.Info($"Default active core set to {machineState.ActiveCore}");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to parse Core config: {line}\nError: {ex.Message}");
+                    Log.Info($"Failed to parse Core config: {line}\nError: {ex.Message}");
                 }
             }
             output.WriteLine(line);
@@ -268,7 +303,7 @@ namespace EstlKnet
                         string parkCommand = (inactive.Feed > 0)
                             ? $"G1 {axisLetter}{inactive.Park:0.000} F{inactive.Feed:0.000}"
                             : $"G00 {axisLetter}{inactive.Park:0.000}";
-                        Console.WriteLine($"Parking core {machineState.ActiveCore} with command: {parkCommand}");
+                        Log.Info($"Parking core {machineState.ActiveCore} with command: {parkCommand}");
                         output.WriteLine(parkCommand);
                     }
 
