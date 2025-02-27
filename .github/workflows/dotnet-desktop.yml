@@ -115,7 +115,7 @@ jobs:
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: "auto-${{ github.sha }}"
+        tag_name: "auto-${{ steps.short_sha.outputs.short_sha }}"
         files: "release.zip"
         #asset_path: ./release.zip
         #asset_name: EstlKnet.zip
