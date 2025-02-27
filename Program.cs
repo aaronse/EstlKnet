@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace EstlKnet
 {
@@ -109,6 +110,8 @@ namespace EstlKnet
                     if (jsonStart >= 0 && jsonEnd > jsonStart)
                     {
                         string jsonFragment = line.Substring(jsonStart, jsonEnd - jsonStart + 1);
+                        // Pre-process the JSON fragment to add missing quotes around keys.
+                        string relaxedJson = SanitizeJson(jsonFragment);
                         try
                         {
                             CoreConfig config = JsonSerializer.Deserialize<CoreConfig>(jsonFragment);
@@ -198,5 +201,19 @@ namespace EstlKnet
             Console.WriteLine("Processing complete.");
             return 0;
         }
+
+        /// <summary>
+        /// Pre-process the JSON fragment to relax the syntax by quoting unquoted keys.
+        /// This regex looks for property names that are not wrapped in quotes and adds them.
+        /// </summary>
+        /// <param name="json">The raw JSON fragment.</param>
+        /// <returns>A JSON fragment with keys properly quoted.</returns>
+        static string SanitizeJson(string json)
+        {
+            string pattern = @"(?<=[{,])\s*(\w+)\s*:";
+            string replacement = "\"$1\":";
+            return Regex.Replace(json, pattern, replacement);
+        }
+
     }
 }
