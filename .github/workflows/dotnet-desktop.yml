@@ -51,7 +51,7 @@ jobs:
 
     strategy:
       matrix:
-        configuration: [Debug, Release]
+        configuration: [Release] #[Debug, Release]
 
     runs-on: windows-latest  # For a list of available runner types, refer to
                              # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
@@ -74,6 +74,9 @@ jobs:
       with:
         dotnet-version: 8.0.x
 
+    - name: Clean Build
+      run: dotnet clean EstlKnet.csproj -c Release
+
     - name: Publish app
       run: dotnet publish EstlKnet.csproj -c Release -o output
 
@@ -83,6 +86,9 @@ jobs:
     #- name: Zip published output (Linux runner)
     #  run: zip -r release.zip output
 
+    - name: List working directory
+      run: dir
+      
     - name: Create GitHub Release
       id: create_release
       uses: softprops/action-gh-release@v1
@@ -96,9 +102,10 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: "auto-${{ github.sha }}"
-        asset_path: ./release.zip
-        asset_name: EstlKnet.zip
-        asset_content_type: application/zip
+        files: "release.zip"
+        #asset_path: ./release.zip
+        #asset_name: EstlKnet.zip
+        #asset_content_type: application/zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
