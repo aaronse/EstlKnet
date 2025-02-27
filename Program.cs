@@ -6,7 +6,7 @@ namespace EstlKnet
     // Small app to help post process EstlCam generated g-code to help Makers needing to split 
     // cut 'n carve jobs on CNC setups with 1-many routers (e.g. IDEX).
 
-    // Based on Jason Yeager's (jeyeager) post  https://forum.v1e.com/t/how-many-are-were-interested-in-idex-builds/48047/23
+    // Based on Jason Yeager's (jeyeager) code from the .exe he posted  https://forum.v1e.com/t/how-many-are-were-interested-in-idex-builds/48047/23
     // 
     class Program
     {
